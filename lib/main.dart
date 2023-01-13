@@ -1,4 +1,9 @@
+import 'dart:io';
+
+import 'package:ffmpeg_kit_flutter/return_code.dart';
 import 'package:flutter/material.dart';
+import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
+import 'package:file_picker/file_picker.dart';
 
 void main() {
   runApp(MyApp());
@@ -28,7 +33,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+  MyHomePage({Key? key, required this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -57,6 +62,36 @@ class _MyHomePageState extends State<MyHomePage> {
       // called again, and so nothing would appear to happen.
       _counter++;
     });
+  }
+
+  void _openFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+    if (result != null) {
+      // File file = File(result.files.single.path);
+      var fielPath = result.files.single.path;
+      if (fielPath != null) {
+        // '-i file1.mp4 -c:v mpeg4 file2.mp4'
+        var executeStr = ' -i ' + fielPath + ' -c:v -c:a mpeg4 test.mp4';
+
+        FFmpegKit.execute(executeStr).then((session) async {
+          final returnCode = await session.getReturnCode();
+
+          if (ReturnCode.isSuccess(returnCode)) {
+            // SUCCESS
+
+          } else if (ReturnCode.isCancel(returnCode)) {
+            // CANCEL
+
+          } else {
+            // ERROR
+
+          }
+        });
+      }
+    } else {
+      // User canceled the picker
+    }
   }
 
   @override
@@ -104,10 +139,15 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
+        onPressed: _openFile,
+        tooltip: '_openFile',
+        child: Icon(Icons.file_open),
       ), // This trailing comma makes auto-formatting nicer for build methods.
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: _openFile,
+      //   tooltip: 'Increment1',
+      //   child: Icon(Icons.add),
+      // ),
     );
   }
 }
