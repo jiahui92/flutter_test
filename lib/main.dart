@@ -72,7 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
       var fielPath = result.files.single.path;
       if (fielPath != null) {
         // '-i file1.mp4 -c:v mpeg4 file2.mp4'
-        var executeStr = ' -i ' + fielPath + ' -c:v -c:a mpeg4 test.mp4';
+        var executeStr = ' -i $fielPath -c:v -c:a mpeg4 test.mp4';
 
         FFmpegKit.execute(executeStr).then((session) async {
           final returnCode = await session.getReturnCode();
