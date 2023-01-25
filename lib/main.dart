@@ -4,6 +4,8 @@ import 'package:ffmpeg_kit_flutter/return_code.dart';
 import 'package:flutter/material.dart';
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(MyApp());
@@ -64,18 +66,57 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  // 获取video的存储目录
+  static Future<String> getVideoRootDirectory(
+      {String foldName = 'videos'}) async {
+    Directory? directory;
+    if (Platform.isIOS) {
+      directory = await getApplicationSupportDirectory();
+    } else if (Platform.isAndroid) {
+      // TODO 更新成 media_store_plus，同步到安卓的公共目录
+      directory = (await getExternalStorageDirectory())!;
+    }
+
+    if (directory == null) {
+      return '';
+    }
+
+    Directory _directoryFolder = Directory('${directory.path}/$foldName/');
+
+    if (await _directoryFolder.exists()) {
+      return _directoryFolder.path;
+    } else {
+      final Directory _directoryNewFolder =
+          await _directoryFolder.create(recursive: true);
+      return _directoryNewFolder.path;
+    }
+  }
+
   void _openFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
 
     if (result != null) {
       // File file = File(result.files.single.path);
-      var fielPath = result.files.single.path;
-      if (fielPath != null) {
+      var filePath = result.files.single.path;
+      if (filePath != null) {
+        final savePath = await getVideoRootDirectory();
+        // TODO 转成能看懂的时间格式
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        // DateTime.parse(formattedString)
         // '-i file1.mp4 -c:v mpeg4 file2.mp4'
-        var executeStr = ' -i $fielPath -c:v -c:a mpeg4 test.mp4';
+        var executeStr =
+            ' -i $filePath -c copy -ss 00:00:06 -to 00:00:07 ${savePath}test_$timestamp.mp4';
+
+        // await Permission.storage.request().isGranted;
 
         FFmpegKit.execute(executeStr).then((session) async {
           final returnCode = await session.getReturnCode();
+          final output = await session.getOutput();
+          final failStackTrace = await session.getFailStackTrace();
+          final log = await session.getAllLogsAsString();
+
+          print(
+              'executeStr: $executeStr, returnCode: $returnCode, log: $log, failStackTrace: $failStackTrace');
 
           if (ReturnCode.isSuccess(returnCode)) {
             // SUCCESS
